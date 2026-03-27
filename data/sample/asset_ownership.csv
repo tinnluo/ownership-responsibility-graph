@@ -1,0 +1,7 @@
+entity_id,asset_id,ownership_share,owner_type,asset_unit_id
+ENT_001,AST_130,0.3,direct_owner,U1
+ENT_011,AST_100,0.35,direct_owner,U1
+ENT_011,AST_100,0.25,direct_owner,U2
+ENT_020,AST_110,1.0,direct_owner,U1
+ENT_030,AST_120,0.75,direct_owner,U1
+ENT_040,AST_100,0.4,direct_owner,U3

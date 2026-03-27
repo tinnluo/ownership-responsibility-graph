@@ -1,0 +1,42 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "ownership-responsibility-graph"
+version = "0.1.0"
+description = "Public-safe ownership and responsibility graph demo built with NetworkX and Neo4j-ready exports."
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "MIT" }
+authors = [
+  { name = "Lxt" }
+]
+dependencies = [
+  "networkx>=3.4,<4",
+  "pandas>=2.2,<3",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.3,<9",
+  "ruff>=0.11,<0.12",
+]
+
+[project.scripts]
+ownership-graph-build = "ownership_graph.cli:build_main"
+ownership-graph-analyze = "ownership_graph.cli:analyze_main"
+ownership-graph-export-neo4j = "ownership_graph.cli:export_main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["ownership_graph"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B"]

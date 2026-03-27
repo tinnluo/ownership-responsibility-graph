@@ -1,0 +1,5 @@
+parent_entity_id,child_entity_id,ownership_share,as_of_date,is_current
+ENT_001,ENT_010,0.8,2026-01-01,true
+ENT_001,ENT_020,0.6,2026-01-01,true
+ENT_010,ENT_011,0.5,2026-01-01,true
+ENT_040,ENT_030,0.7,2026-01-01,true

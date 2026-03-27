@@ -1,0 +1,7 @@
+entity_id,entity_name,country_iso3,entity_kind
+ENT_001,Atlas Infrastructure Group,USA,parent
+ENT_010,Beacon Power Holdings,USA,subsidiary
+ENT_011,Delta Thermal Operations,USA,subsidiary
+ENT_020,Northshore Renewables,USA,subsidiary
+ENT_030,Harbor Logistics,USA,subsidiary
+ENT_040,Meridian Industrials,USA,parent

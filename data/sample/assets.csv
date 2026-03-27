@@ -1,0 +1,5 @@
+asset_id,asset_name,sector,sub_sector,technology,country_iso3
+AST_100,Riverbend Gas Plant,Power,Gas,Natural Gas,USA
+AST_110,Sunline Solar Park,Power,Solar,Photovoltaic,USA
+AST_120,Portside Terminal,Transport,Logistics,Port Terminal,USA
+AST_130,Atlas CHP Unit,Power,Gas,Combined Heat and Power,USA

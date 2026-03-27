@@ -1,0 +1,4 @@
+root_entity_id,entity_id,asset_id,hierarchy_level,entity_path,entity_ownership_share,asset_ownership_share,compound_ownership_share,asset_emissions,attributed_emissions,emission_profile_id,reporting_year
+ENT_001,ENT_001,AST_130,0,ENT_001,1.0,0.3,0.3,80,24.0,EP_130,2025
+ENT_001,ENT_020,AST_110,1,ENT_001|ENT_020,0.6,1.0,0.6,120,72.0,EP_110,2025
+ENT_001,ENT_011,AST_100,2,ENT_001|ENT_010|ENT_011,0.4,0.6,0.24,1000,240.0,EP_100,2025

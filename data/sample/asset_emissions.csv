@@ -1,0 +1,5 @@
+emission_profile_id,asset_id,reporting_year,scope_1_tco2e,scope_2_tco2e,total_tco2e
+EP_100,AST_100,2025,900,100,1000
+EP_110,AST_110,2025,100,20,120
+EP_120,AST_120,2025,250,50,300
+EP_130,AST_130,2025,70,10,80
