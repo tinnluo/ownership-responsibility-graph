@@ -85,8 +85,8 @@ The checked-in demo fixture produces:
 
 Committed example artifacts:
 
-- [`docs/examples/responsibility_attribution_sample.csv`](/Users/lxt/Documents/portfolio/ownership-responsibility-graph/docs/examples/responsibility_attribution_sample.csv)
-- [`docs/examples/top_responsible_entities_sample.csv`](/Users/lxt/Documents/portfolio/ownership-responsibility-graph/docs/examples/top_responsible_entities_sample.csv)
+- [`docs/examples/responsibility_attribution_sample.csv`](docs/examples/responsibility_attribution_sample.csv)
+- [`docs/examples/top_responsible_entities_sample.csv`](docs/examples/top_responsible_entities_sample.csv)
 
 ## Example Use Cases
 
