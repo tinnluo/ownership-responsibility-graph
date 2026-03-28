@@ -73,6 +73,22 @@ uv run ownership-graph-export-neo4j --input-dir data/output --output-dir data/ou
 
 If `uv` is unavailable, install the package in editable mode and run the same scripts with `python3`.
 
+## Quick Start with Docker
+
+Build the image:
+
+```bash
+docker build -t ownership-responsibility-graph .
+```
+
+Run the default graph build with Docker Compose:
+
+```bash
+docker compose up --build
+```
+
+The compose service mounts `data/` and `scripts/` from the host, so generated outputs land in the host `data/output/` directory.
+
 ## Sample Outputs
 
 The checked-in demo fixture produces:

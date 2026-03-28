@@ -1,0 +1,7 @@
+services:
+  graph:
+    build: .
+    command: ["--data-dir", "data/sample", "--output-dir", "data/output"]
+    volumes:
+      - ./data:/app/data
+      - ./scripts:/app/scripts
