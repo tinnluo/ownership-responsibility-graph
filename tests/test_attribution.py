@@ -2,6 +2,7 @@ import pytest
 
 from ownership_graph.analysis.attribution import (
     aggregate_direct_asset_ownership,
+    build_attributed_emission_relationships,
     build_responsibility_table,
     rank_root_entities,
 )
@@ -44,3 +45,19 @@ def test_rank_root_entities_matches_expected_totals(demo_tables):
     assert totals["ENT_001"] == pytest.approx(336.0)
     assert totals["ENT_040"] == pytest.approx(557.5)
     assert ranking.iloc[0]["root_entity_id"] == "ENT_040"
+
+
+def test_build_attributed_emission_relationships_matches_responsibility_rows(demo_tables):
+    descendants = trace_entity_hierarchy(demo_tables.entity_ownership, "ENT_001")
+    responsibility = build_responsibility_table(
+        "ENT_001", descendants, demo_tables.asset_ownership, demo_tables.asset_emissions
+    )
+    attributed = build_attributed_emission_relationships(responsibility)
+
+    row = attributed[
+        (attributed["root_entity_id"] == "ENT_001")
+        & (attributed["emission_profile_id"] == "EP_100")
+    ].iloc[0]
+    assert row["holder_entity_id"] == "ENT_011"
+    assert row["compound_ownership_share"] == pytest.approx(0.24)
+    assert row["attributed_emissions"] == pytest.approx(240.0)

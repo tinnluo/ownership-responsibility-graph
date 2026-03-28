@@ -2,6 +2,8 @@ from pathlib import Path
 
 import pandas as pd
 
+from ownership_graph.analysis.attribution import build_responsibility_table
+from ownership_graph.analysis.hierarchy import trace_entity_hierarchy
 from ownership_graph.export.neo4j import write_neo4j_exports
 from ownership_graph.graph.build import build_graph, normalized_edges_df, normalized_nodes_df
 
@@ -23,7 +25,11 @@ def test_build_graph_and_normalized_exports(demo_tables):
 
 
 def test_write_neo4j_exports(tmp_path: Path, demo_tables):
-    write_neo4j_exports(demo_tables, tmp_path)
+    descendants = trace_entity_hierarchy(demo_tables.entity_ownership, "ENT_001")
+    responsibility = build_responsibility_table(
+        "ENT_001", descendants, demo_tables.asset_ownership, demo_tables.asset_emissions
+    )
+    write_neo4j_exports(demo_tables, tmp_path, responsibility)
 
     expected_files = {
         "entities.csv",
@@ -32,6 +38,7 @@ def test_write_neo4j_exports(tmp_path: Path, demo_tables):
         "owns_entity.csv",
         "owns_asset.csv",
         "has_emissions.csv",
+        "attributed_emissions.csv",
         "load.cypher",
         "queries.cypher",
     }
@@ -44,3 +51,7 @@ def test_write_neo4j_exports(tmp_path: Path, demo_tables):
     ]
     assert len(ast100_row) == 1
     assert ast100_row.iloc[0]["weight:float"] == 0.6
+
+    attributed = pd.read_csv(tmp_path / "attributed_emissions.csv")
+    assert len(attributed) == 3
+    assert set(attributed[":TYPE"]) == {"ATTRIBUTED_EMISSIONS"}

@@ -5,3 +5,46 @@ services:
     volumes:
       - ./data:/app/data
       - ./scripts:/app/scripts
+  neo4j:
+    image: neo4j:5-community
+    environment:
+      NEO4J_AUTH: ${NEO4J_USERNAME:-neo4j}/${NEO4J_PASSWORD:-neo4jpassword}
+    healthcheck:
+      test: ["CMD-SHELL", "cypher-shell -u ${NEO4J_USERNAME:-neo4j} -p ${NEO4J_PASSWORD:-neo4jpassword} 'RETURN 1' || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 12
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    volumes:
+      - neo4j-data:/data
+      - neo4j-logs:/logs
+  neo4j-loader:
+    build: .
+    entrypoint: ["ownership-graph-load-neo4j"]
+    command:
+      [
+        "--input-dir",
+        "data/output",
+        "--uri",
+        "bolt://neo4j:7687",
+        "--username",
+        "${NEO4J_USERNAME:-neo4j}",
+        "--password",
+        "${NEO4J_PASSWORD:-neo4jpassword}",
+        "--database",
+        "${NEO4J_DATABASE:-neo4j}",
+        "--wipe"
+      ]
+    depends_on:
+      graph:
+        condition: service_completed_successfully
+      neo4j:
+        condition: service_healthy
+    volumes:
+      - ./data:/app/data
+      - ./scripts:/app/scripts
+volumes:
+  neo4j-data:
+  neo4j-logs:

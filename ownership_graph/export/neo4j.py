@@ -2,19 +2,33 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from pathlib import Path
 
 import pandas as pd
 
-from ownership_graph.analysis.attribution import aggregate_direct_asset_ownership
+from ownership_graph.analysis.attribution import (
+    aggregate_direct_asset_ownership,
+    build_attributed_emission_relationships,
+)
 from ownership_graph.models.schemas import DemoTables
 
 
-def write_neo4j_exports(tables: DemoTables, output_dir: str | Path) -> None:
+def write_neo4j_exports(
+    tables: DemoTables,
+    output_dir: str | Path,
+    responsibility_df: pd.DataFrame | None = None,
+    attributed_df: pd.DataFrame | None = None,
+) -> None:
     """Write label-specific node and relationship CSV files plus helper Cypher."""
 
     output_path = Path(output_dir)
     output_path.mkdir(parents=True, exist_ok=True)
+    attributed_emissions = attributed_df
+    if attributed_emissions is None:
+        attributed_emissions = build_attributed_emission_relationships(
+            responsibility_df if responsibility_df is not None else pd.DataFrame()
+        )
 
     entity_nodes = tables.entities.rename(
         columns={
@@ -71,6 +85,15 @@ def write_neo4j_exports(tables: DemoTables, output_dir: str | Path) -> None:
     has_emissions[
         [":START_ID(Asset-ID)", ":END_ID(Emission-ID)", "weight:float", ":TYPE"]
     ].to_csv(output_path / "has_emissions.csv", index=False)
+    attributed_emissions.rename(
+        columns={
+            "root_entity_id": ":START_ID(Entity-ID)",
+            "emission_profile_id": ":END_ID(Emission-ID)",
+        }
+    ).assign(**{":TYPE": "ATTRIBUTED_EMISSIONS"}).to_csv(
+        output_path / "attributed_emissions.csv",
+        index=False,
+    )
 
     (output_path / "load.cypher").write_text(_load_cypher(), encoding="utf-8")
     (output_path / "queries.cypher").write_text(_queries_cypher(), encoding="utf-8")
@@ -89,8 +112,39 @@ def load_tables_from_staged_dir(staged_dir: str | Path) -> DemoTables:
     )
 
 
+def load_analysis_artifacts(output_dir: str | Path) -> Mapping[str, pd.DataFrame]:
+    """Load analysis CSVs required for Neo4j export/runtime operations."""
+
+    analysis_path = Path(output_dir) / "analysis"
+    responsibility_path = analysis_path / "responsibility_attribution.csv"
+    attributed_path = analysis_path / "attributed_emission_relationships.csv"
+    if not responsibility_path.exists():
+        raise FileNotFoundError(
+            "Missing required analysis artifact: "
+            f"{responsibility_path}. Run ownership-graph-analyze first."
+        )
+
+    artifacts = {
+        "responsibility_attribution": pd.read_csv(responsibility_path),
+    }
+    if attributed_path.exists():
+        artifacts["attributed_emission_relationships"] = pd.read_csv(attributed_path)
+    return artifacts
+
+
 def _load_cypher() -> str:
-    return """LOAD CSV WITH HEADERS FROM 'file:///entities.csv' AS row
+    return """CREATE CONSTRAINT entity_id_unique IF NOT EXISTS
+FOR (e:Entity) REQUIRE e.entity_id IS UNIQUE;
+CREATE CONSTRAINT asset_id_unique IF NOT EXISTS
+FOR (a:Asset) REQUIRE a.asset_id IS UNIQUE;
+CREATE CONSTRAINT emission_profile_id_unique IF NOT EXISTS
+FOR (ep:EmissionProfile) REQUIRE ep.emission_profile_id IS UNIQUE;
+CREATE INDEX entity_kind_index IF NOT EXISTS FOR (e:Entity) ON (e.entity_kind);
+CREATE INDEX asset_sector_index IF NOT EXISTS FOR (a:Asset) ON (a.sector);
+CREATE INDEX emission_reporting_year_index IF NOT EXISTS
+FOR (ep:EmissionProfile) ON (ep.reporting_year);
+
+LOAD CSV WITH HEADERS FROM 'file:///entities.csv' AS row
 MERGE (e:Entity {entity_id: row.`entity_id:ID(Entity-ID)`})
 SET e.name = row.name,
     e.country_iso3 = row.country_iso3,
@@ -129,52 +183,48 @@ MATCH (asset:Asset {asset_id: row.`:START_ID(Asset-ID)`})
 MATCH (ep:EmissionProfile {emission_profile_id: row.`:END_ID(Emission-ID)`})
 MERGE (asset)-[r:HAS_EMISSIONS]->(ep)
 SET r.weight = toFloat(row.`weight:float`);
+
+LOAD CSV WITH HEADERS FROM 'file:///attributed_emissions.csv' AS row
+MATCH (root:Entity {entity_id: row.`:START_ID(Entity-ID)`})
+MATCH (ep:EmissionProfile {emission_profile_id: row.`:END_ID(Emission-ID)`})
+MERGE (root)-[r:ATTRIBUTED_EMISSIONS]->(ep)
+SET r.asset_id = row.asset_id,
+    r.holder_entity_id = row.holder_entity_id,
+    r.entity_path = row.entity_path,
+    r.entity_ownership_share = toFloat(row.entity_ownership_share),
+    r.asset_ownership_share = toFloat(row.asset_ownership_share),
+    r.compound_ownership_share = toFloat(row.compound_ownership_share),
+    r.attributed_emissions = toFloat(row.attributed_emissions),
+    r.reporting_year = toInteger(row.reporting_year);
 """
 
 
 def _queries_cypher() -> str:
     return """// Trace responsibility for a selected asset.
-MATCH path = (root:Entity)-[:OWNS_ENTITY*0..10]->(holder:Entity)
-             -[oa:OWNS_ASSET]->(asset:Asset {asset_id: 'AST_100'})
-             -[:HAS_EMISSIONS]->(ep:EmissionProfile)
-WITH root, holder, asset, ep, oa,
-     relationships(path)[0..size(relationships(path)) - 1] AS entity_rels,
-     [node IN nodes(path) |
-      coalesce(node.entity_id, node.asset_id, node.emission_profile_id)] AS path_nodes
-WITH root, holder, asset, ep, oa, path_nodes,
-     reduce(weight = 1.0, rel IN entity_rels | weight * rel.weight) AS entity_path_share
+MATCH (root:Entity)-[r:ATTRIBUTED_EMISSIONS]->(ep:EmissionProfile)
+      <-[:HAS_EMISSIONS]-(asset:Asset {asset_id: 'AST_100'})
 RETURN root.entity_id AS root_entity,
-       holder.entity_id AS holder_entity,
-       path_nodes,
-       entity_path_share,
-       oa.weight AS asset_share,
-       entity_path_share * oa.weight AS compound_share,
-       entity_path_share * oa.weight * ep.total_tco2e AS attributed_emissions
+       r.holder_entity_id AS holder_entity,
+       split(r.entity_path, '|') AS path_nodes,
+       r.entity_ownership_share AS entity_path_share,
+       r.asset_ownership_share AS asset_share,
+       r.compound_ownership_share AS compound_share,
+       r.attributed_emissions AS attributed_emissions
 ORDER BY attributed_emissions DESC;
 
 // Show the weighted ownership chain from a selected root entity.
-MATCH path = (root:Entity {entity_id: 'ENT_001'})-[:OWNS_ENTITY*0..10]->(holder:Entity)
-             -[oa:OWNS_ASSET]->(asset:Asset)
-WITH path, oa,
-     relationships(path)[0..size(relationships(path)) - 1] AS entity_rels,
-     [node IN nodes(path) | coalesce(node.entity_id, node.asset_id)] AS chain
-RETURN chain,
-       reduce(weight = 1.0, rel IN entity_rels | weight * rel.weight) AS entity_path_share,
-       oa.weight AS asset_share,
+MATCH (root:Entity {entity_id: 'ENT_001'})-[r:ATTRIBUTED_EMISSIONS]
+      ->(ep:EmissionProfile)<-[:HAS_EMISSIONS]-(asset:Asset)
+RETURN split(r.entity_path, '|') AS chain,
+       r.entity_ownership_share AS entity_path_share,
+       r.asset_ownership_share AS asset_share,
+       r.compound_ownership_share AS compound_share,
        asset.asset_id AS asset_id
 ORDER BY asset_id;
 
 // Rank entities by attributed emissions.
-MATCH path = (root:Entity)-[:OWNS_ENTITY*0..10]->(holder:Entity)
-             -[oa:OWNS_ASSET]->(asset:Asset)
-             -[:HAS_EMISSIONS]->(ep:EmissionProfile)
-WITH root, oa, ep,
-     relationships(path)[0..size(relationships(path)) - 1] AS entity_rels
-WITH root,
-     reduce(weight = 1.0, rel IN entity_rels | weight * rel.weight)
-     * oa.weight
-     * ep.total_tco2e AS attributed_emissions
+MATCH (root:Entity)-[r:ATTRIBUTED_EMISSIONS]->(:EmissionProfile)
 RETURN root.entity_id AS root_entity,
-       sum(attributed_emissions) AS total_attributed_emissions
+       sum(r.attributed_emissions) AS total_attributed_emissions
 ORDER BY total_attributed_emissions DESC;
 """

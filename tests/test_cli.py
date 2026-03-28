@@ -41,5 +41,7 @@ def test_cli_pipeline_runs_end_to_end(tmp_path, read_csv):
         assert result.returncode == 0, result.stderr
 
     ranking = read_csv(output_dir / "analysis" / "top_responsible_entities.csv")
+    attributed = read_csv(output_dir / "analysis" / "attributed_emission_relationships.csv")
     assert ranking.iloc[0]["root_entity_id"] == "ENT_040"
     assert ranking.iloc[0]["total_attributed_emissions"] == 557.5
+    assert len(attributed) == 5

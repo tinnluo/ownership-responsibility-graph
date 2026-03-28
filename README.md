@@ -61,6 +61,7 @@ Neo4j export is included to show the next deployment step once the model is stab
 - relationship CSVs
 - a `load.cypher` helper script
 - example graph queries for responsibility tracing
+- a live Neo4j runtime path with driver-based loading and canned query commands
 
 ## Local Run Steps
 
@@ -69,6 +70,8 @@ uv sync --extra dev
 uv run ownership-graph-build --data-dir data/sample --output-dir data/output
 uv run ownership-graph-analyze --data-dir data/sample --output-dir data/output --root-entity-id ENT_001 --asset-id AST_100
 uv run ownership-graph-export-neo4j --input-dir data/output --output-dir data/output/neo4j
+uv run ownership-graph-load-neo4j --input-dir data/output --uri bolt://localhost:7687 --username neo4j --password neo4jpassword --database neo4j --wipe
+uv run ownership-graph-query-neo4j --query-set top-entities --output-dir data/output/neo4j_query_results --uri bolt://localhost:7687 --username neo4j --password neo4jpassword --database neo4j
 ```
 
 If `uv` is unavailable, install the package in editable mode and run the same scripts with `python3`.
@@ -88,6 +91,15 @@ docker compose up --build
 ```
 
 The compose service mounts `data/` and `scripts/` from the host, so generated outputs land in the host `data/output/` directory.
+
+To start Neo4j locally and load the current outputs:
+
+```bash
+cp .env.example .env
+docker compose up --build graph neo4j neo4j-loader
+```
+
+That workflow keeps NetworkX as the source of truth, then loads the staged graph and the precomputed attribution relationships into Neo4j. The database is available at `bolt://localhost:7687` and the Browser UI is at `http://localhost:7474`.
 
 ## Sample Outputs
 
@@ -117,6 +129,12 @@ The Neo4j export writes `queries.cypher` with examples for:
 - tracing responsibility for `AST_100`
 - showing weighted ownership chains from `ENT_001`
 - ranking root entities by attributed emissions
+
+The live Neo4j query command writes CSV result sets under `data/output/neo4j_query_results/` for:
+
+- `asset-trace`
+- `root-chain`
+- `top-entities`
 
 ## What Was Generalized Or Removed
 

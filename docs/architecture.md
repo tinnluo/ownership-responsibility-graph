@@ -21,7 +21,9 @@ CSV fixtures
 3. `aggregate_direct_asset_ownership()` collapses duplicate owner-asset rows.
 4. `build_responsibility_table()` joins hierarchy rows to direct asset ownership and asset emissions.
 5. `build_graph()` materializes the three-layer graph in NetworkX.
-6. `write_neo4j_exports()` writes CSV and Cypher artifacts for graph-database loading.
+6. `build_attributed_emission_relationships()` materializes root-to-emission-profile attribution rows from the responsibility table.
+7. `write_neo4j_exports()` writes CSV and Cypher artifacts for graph-database loading.
+8. `ownership-graph-load-neo4j` can load the staged graph and attribution rows directly into a running Neo4j instance via the Neo4j Python driver.
 
 ## Ownership Arithmetic
 
@@ -54,6 +56,7 @@ Edges:
 - `OWNS_ENTITY.weight` = entity ownership share
 - `OWNS_ASSET.weight` = direct asset ownership share
 - `HAS_EMISSIONS.weight` = `1.0`
+- `ATTRIBUTED_EMISSIONS.attributed_emissions` = precomputed root-level responsibility on an emission profile
 
 ## Deliberate Constraints
 
@@ -67,6 +70,7 @@ Edges:
 - `data/output/normalized/nodes.csv`
 - `data/output/normalized/edges.csv`
 - `data/output/analysis/responsibility_attribution.csv`
+- `data/output/analysis/attributed_emission_relationships.csv`
 - `data/output/analysis/path_examples.csv`
 - `data/output/analysis/top_responsible_entities.csv`
 - `data/output/neo4j/*.csv`

@@ -137,6 +137,72 @@ def build_path_examples(responsibility_df: pd.DataFrame, asset_id: str) -> pd.Da
     )
 
 
+def build_attributed_emission_relationships(responsibility_df: pd.DataFrame) -> pd.DataFrame:
+    """Materialize root-entity to emission-profile attribution rows for Neo4j."""
+
+    if responsibility_df.empty:
+        return pd.DataFrame(
+            columns=[
+                "root_entity_id",
+                "emission_profile_id",
+                "asset_id",
+                "holder_entity_id",
+                "entity_path",
+                "entity_ownership_share",
+                "asset_ownership_share",
+                "compound_ownership_share",
+                "attributed_emissions",
+                "reporting_year",
+            ]
+        )
+
+    return (
+        responsibility_df.rename(columns={"entity_id": "holder_entity_id"})[
+            [
+                "root_entity_id",
+                "emission_profile_id",
+                "asset_id",
+                "holder_entity_id",
+                "entity_path",
+                "entity_ownership_share",
+                "asset_ownership_share",
+                "compound_ownership_share",
+                "attributed_emissions",
+                "reporting_year",
+            ]
+        ]
+        .sort_values(["root_entity_id", "asset_id", "holder_entity_id"])
+        .reset_index(drop=True)
+    )
+
+
+def build_all_attributed_emission_relationships(
+    entities_df: pd.DataFrame,
+    entity_ownership_df: pd.DataFrame,
+    asset_ownership_df: pd.DataFrame,
+    asset_emissions_df: pd.DataFrame,
+) -> pd.DataFrame:
+    """Build attribution relationships for every root entity in the graph."""
+
+    roots = find_root_entities(entities_df["entity_id"], entity_ownership_df)
+    frames = []
+    for root_entity_id in roots:
+        descendants_df = trace_entity_hierarchy(entity_ownership_df, root_entity_id)
+        responsibility_df = build_responsibility_table(
+            root_entity_id,
+            descendants_df,
+            asset_ownership_df,
+            asset_emissions_df,
+        )
+        frames.append(build_attributed_emission_relationships(responsibility_df))
+
+    if not frames:
+        return build_attributed_emission_relationships(pd.DataFrame())
+    return pd.concat(frames, ignore_index=True).sort_values(
+        ["root_entity_id", "asset_id", "holder_entity_id"]
+    ).reset_index(drop=True)
+
+
 def rank_root_entities(
     entities_df: pd.DataFrame,
     entity_ownership_df: pd.DataFrame,

@@ -13,6 +13,7 @@ authors = [
   { name = "Lxt" }
 ]
 dependencies = [
+  "neo4j>=5.28,<6",
   "networkx>=3.4,<4",
   "pandas>=2.2,<3",
 ]
@@ -27,6 +28,8 @@ dev = [
 ownership-graph-build = "ownership_graph.cli:build_main"
 ownership-graph-analyze = "ownership_graph.cli:analyze_main"
 ownership-graph-export-neo4j = "ownership_graph.cli:export_main"
+ownership-graph-load-neo4j = "ownership_graph.cli:load_neo4j_main"
+ownership-graph-query-neo4j = "ownership_graph.cli:query_neo4j_main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["ownership_graph"]
