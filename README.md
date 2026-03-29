@@ -136,12 +136,6 @@ The live Neo4j query command writes CSV result sets under `data/output/neo4j_que
 - `root-chain`
 - `top-entities`
 
-## What Was Generalized Or Removed
-
-- company-specific vocabulary was replaced with public-safe names like `entity`, `asset`, and `responsibility attribution`
-- the sample data is hand-curated and checked in locally
-- no UI, notebook, LLM feature, or live graph database dependency is included
-
 ## Repo Layout
 
 ```text
