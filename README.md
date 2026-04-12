@@ -101,6 +101,41 @@ docker compose up --build graph neo4j neo4j-loader
 
 That workflow keeps NetworkX as the source of truth, then loads the staged graph and the precomputed attribution relationships into Neo4j. The database is available at `bolt://localhost:7687` and the Browser UI is at `http://localhost:7474`.
 
+## Kubernetes deployment
+
+Kubernetes manifests are available under [`k8s/`](k8s/). They run Neo4j as a StatefulSet, write pipeline artifacts to a shared `graph-output` PersistentVolumeClaim, then load the staged graph and precomputed attribution relationships with a loader Job.
+
+Prerequisites:
+
+- minikube or kind
+- `kubectl`
+- a local `ownership-responsibility-graph:latest` image loaded into the cluster
+
+```bash
+docker build -t ownership-responsibility-graph:latest .
+minikube image load ownership-responsibility-graph:latest
+# For kind: kind load docker-image ownership-responsibility-graph:latest
+
+kubectl apply -f k8s/namespace.yaml
+kubectl apply -f k8s/configmap.yaml
+kubectl apply -f k8s/secret.yaml
+kubectl apply -f k8s/neo4j/pvc.yaml
+kubectl apply -f k8s/neo4j/service.yaml
+kubectl apply -f k8s/neo4j/statefulset.yaml
+kubectl rollout status statefulset/neo4j -n ownership-graph --timeout=180s
+
+kubectl apply -f k8s/graph/job.yaml
+kubectl wait --for=condition=complete job/ownership-graph-build -n ownership-graph --timeout=120s
+
+kubectl apply -f k8s/graph/analyze-job.yaml
+kubectl wait --for=condition=complete job/ownership-graph-analyze -n ownership-graph --timeout=120s
+
+kubectl apply -f k8s/neo4j-loader/job.yaml
+kubectl wait --for=condition=complete job/ownership-graph-load-neo4j -n ownership-graph --timeout=180s
+```
+
+See [`k8s/README.md`](k8s/README.md) for dry-run validation, monitoring, port-forwarding, and teardown commands.
+
 ## Sample Outputs
 
 The checked-in demo fixture produces:

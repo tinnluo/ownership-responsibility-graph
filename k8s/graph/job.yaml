@@ -1,0 +1,29 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: ownership-graph-build
+  namespace: ownership-graph
+spec:
+  ttlSecondsAfterFinished: 3600
+  backoffLimit: 2
+  template:
+    spec:
+      enableServiceLinks: false
+      restartPolicy: OnFailure
+      containers:
+        - name: graph-builder
+          image: ownership-responsibility-graph:latest
+          imagePullPolicy: IfNotPresent
+          command: ["ownership-graph-build"]
+          args:
+            - "--data-dir"
+            - "/app/data/sample"
+            - "--output-dir"
+            - "/app/data/output"
+          volumeMounts:
+            - name: graph-output
+              mountPath: /app/data/output
+      volumes:
+        - name: graph-output
+          persistentVolumeClaim:
+            claimName: graph-output

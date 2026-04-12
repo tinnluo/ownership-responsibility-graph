@@ -1,0 +1,12 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - secret.yaml
+  - neo4j/pvc.yaml
+  - neo4j/service.yaml
+  - neo4j/statefulset.yaml
+  - graph/job.yaml
+  - graph/analyze-job.yaml
+  - neo4j-loader/job.yaml

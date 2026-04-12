@@ -75,6 +75,22 @@ Edges:
 - `data/output/analysis/top_responsible_entities.csv`
 - `data/output/neo4j/*.csv`
 
+## Kubernetes Deployment
+
+The `k8s/` manifests mirror the local Compose workflow with Kubernetes primitives:
+
+```text
+Namespace
+  -> ConfigMap + Secret
+  -> PersistentVolumeClaims
+  -> Neo4j StatefulSet + ClusterIP Service
+  -> ownership-graph-build Job
+  -> ownership-graph-analyze Job
+  -> ownership-graph-load-neo4j Job
+```
+
+Neo4j uses dedicated `neo4j-data` and `neo4j-logs` PVCs. The pipeline Jobs share a `graph-output` PVC so the build step can write staged graph files, the analysis step can write attribution artifacts, and the loader can read both before loading Neo4j over the in-cluster Bolt service.
+
 ## Design Rationale
 
 The repo starts with DataFrame-based logic because the attribution math is easier to inspect and test there. The graph representation is added after the ownership tables are normalized so that graph edges mirror the same arithmetic used by the tabular pipeline.
