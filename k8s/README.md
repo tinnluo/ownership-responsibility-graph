@@ -15,6 +15,18 @@ The `graph-output` PVC is declared in `neo4j/pvc.yaml` with the Neo4j PVCs for a
 - `kubectl` configured for that cluster.
 - A locally built `ownership-responsibility-graph:latest` image available inside the cluster.
 
+Start a local cluster:
+
+```bash
+minikube start
+```
+
+For kind, use:
+
+```bash
+kind create cluster --name ownership-graph
+```
+
 Build the image:
 
 ```bash
@@ -30,7 +42,7 @@ minikube image load ownership-responsibility-graph:latest
 For kind, use:
 
 ```bash
-kind load docker-image ownership-responsibility-graph:latest
+kind load docker-image ownership-responsibility-graph:latest --name ownership-graph
 ```
 
 ## Validate

@@ -103,7 +103,7 @@ That workflow keeps NetworkX as the source of truth, then loads the staged graph
 
 ## Kubernetes deployment
 
-Kubernetes manifests are available under [`k8s/`](k8s/). They run Neo4j as a StatefulSet, write pipeline artifacts to a shared `graph-output` PersistentVolumeClaim, then load the staged graph and precomputed attribution relationships with a loader Job.
+Kubernetes manifests are available under [`k8s/`](k8s/). They run Neo4j as a StatefulSet, run build and analysis Jobs against a shared `graph-output` PersistentVolumeClaim, then load the staged graph and precomputed attribution relationships with a loader Job.
 
 Prerequisites:
 
@@ -114,7 +114,7 @@ Prerequisites:
 ```bash
 docker build -t ownership-responsibility-graph:latest .
 minikube image load ownership-responsibility-graph:latest
-# For kind: kind load docker-image ownership-responsibility-graph:latest
+# For a named kind cluster: kind load docker-image ownership-responsibility-graph:latest --name ownership-graph
 
 kubectl apply -f k8s/namespace.yaml
 kubectl apply -f k8s/configmap.yaml

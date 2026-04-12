@@ -73,17 +73,29 @@ Query results are written to `data/output/neo4j_query_results/` as CSVs for offl
 ### Graph Analytics
 
 Beyond attribution, the pipeline also computes:
+
 - **Degree centrality** — identifies structurally important entities in the ownership network
-- **Louvain community detection** — groups entities into ownership clusters for portfolio-level analysis
 
 ### Docker + Multi-Service Compose
 
 Three-service Docker Compose stack:
-- `graph` — NetworkX build, attribution, and Neo4j export
-- `neo4j` — live Neo4j database
-- `neo4j-loader` — driver-based loader that stages the graph and precomputed attribution relationships
 
-The Compose setup keeps NetworkX as the source of truth and loads the verified model into Neo4j for graph-database queries.
+- `graph` — NetworkX build that writes staged graph artifacts
+- `neo4j` — live Neo4j database
+- `neo4j-loader` — driver-based loader that reads staged graph artifacts and precomputed attribution relationships from `data/output`
+
+The Compose setup keeps NetworkX as the source of truth and loads current `data/output` artifacts into Neo4j for graph-database queries.
+
+### Kubernetes Deployment
+
+Kubernetes manifests under `k8s/` run the same demo flow with orchestration primitives:
+
+- `neo4j` — single-replica StatefulSet with persistent data and logs
+- `ownership-graph-build` — Job that writes staged graph artifacts to the shared `graph-output` PVC
+- `ownership-graph-analyze` — Job that writes the attribution artifacts required by the loader
+- `ownership-graph-load-neo4j` — Job that loads the graph into Neo4j over the in-cluster Bolt service
+
+Credentials are provided through a Secret, Neo4j connection defaults through a ConfigMap, and the pipeline artifacts move across Jobs through the shared PVC.
 
 ### Verified Sample Outputs
 
